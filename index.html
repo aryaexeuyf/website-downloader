@@ -1,1 +1,920 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>G1 NEXTGEN | All Social Media Downloader</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --primary:#F59E0B;--secondary:#1e3a8a;--accent:#FBBF24;
+  --bg-deep:#07090F;--btn-gradient:linear-gradient(135deg,#FBBF24,#D97706);
+  --glow:rgba(245,158,11,.35);--glow-soft:rgba(245,158,11,.12);
+  --text-main:#f1f5f9;--text-sub:#94a3b8;
+  --border:rgba(255,255,255,.08);--glass-bg:rgba(255,255,255,.04);
+  --t:.55s cubic-bezier(.4,0,.2,1);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'DM Sans',sans-serif;background:var(--bg-deep);color:var(--text-main);min-height:100vh;overflow-x:hidden;transition:background var(--t)}
+body.no-lag *{animation:none!important;transition:none!important}
+body.no-lag .glass-panel{backdrop-filter:none!important}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--primary);border-radius:3px}
 
+/* ══ CAMERA GATE ══ */
+#cam-gate{position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#020305;gap:22px;padding:32px;text-align:center}
+#cam-gate.hidden{display:none}
+.cam-ring{width:100px;height:100px;border-radius:50%;border:2px solid var(--primary);display:flex;align-items:center;justify-content:center;font-size:36px;color:var(--primary);animation:camPulse 2s ease-in-out infinite}
+@keyframes camPulse{0%,100%{box-shadow:0 0 30px var(--glow)}50%{box-shadow:0 0 60px var(--glow),0 0 100px var(--glow-soft)}}
+#cam-gate h2{font-family:'Syne',sans-serif;font-size:1.55rem;font-weight:800}
+#cam-gate p{color:var(--text-sub);max-width:370px;font-size:.92rem;line-height:1.65}
+.cam-warn{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:12px;padding:13px 18px;color:#fca5a5;font-size:.85rem;max-width:390px;display:none}
+.cam-warn.show{display:block}
+.btn-allow{padding:14px 38px;border-radius:14px;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:1rem;font-weight:600;background:var(--btn-gradient);color:#04070f;box-shadow:0 8px 24px var(--glow);transition:transform .2s,box-shadow .2s}
+.btn-allow:hover{transform:translateY(-2px);box-shadow:0 12px 32px var(--glow)}
+
+/* ══ SPLASH — CINEMATIC ══ */
+#splash{position:fixed;inset:0;z-index:9998;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#020305;transition:opacity 1s ease,visibility 1s ease}
+#splash.hidden{opacity:0;visibility:hidden;pointer-events:none}
+#splash-bg-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:blur(8px) brightness(.22) saturate(1.8);transform:scale(1.1);z-index:0}
+#splash-bg-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:blur(8px) brightness(.22) saturate(1.8);transform:scale(1.1);z-index:0;display:none}
+.cin-bar{position:absolute;left:0;right:0;z-index:2;background:#020305}
+.cin-bar.top{top:0;height:55px;animation:cinTop .9s .2s ease-out both}
+.cin-bar.bot{bottom:0;height:55px;animation:cinBot .9s .2s ease-out both}
+@keyframes cinTop{from{height:200px}to{height:55px}}
+@keyframes cinBot{from{height:200px}to{height:55px}}
+#splash-canvas{position:absolute;inset:0;z-index:1;opacity:.55}
+#splash::after{content:'';position:absolute;inset:0;z-index:3;pointer-events:none;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,.18) 3px,rgba(0,0,0,.18) 4px)}
+.splash-sweep{position:absolute;top:0;bottom:0;left:-80%;width:40%;z-index:4;pointer-events:none;background:linear-gradient(90deg,transparent,rgba(245,158,11,.08),transparent);animation:sweep 3.5s 1.4s ease-in-out infinite}
+@keyframes sweep{0%{left:-40%}100%{left:110%}}
+.splash-noise{position:absolute;inset:0;z-index:2;opacity:.03;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E")}
+
+.splash-ring{position:relative;z-index:5;width:118px;height:118px;margin-bottom:20px;animation:ringIn .7s .7s ease-out both}
+@keyframes ringIn{from{transform:scale(0) rotate(-90deg);opacity:0}to{transform:scale(1) rotate(0);opacity:1}}
+.splash-ring svg{width:100%;height:100%;position:absolute;inset:0}
+.ring-track{fill:none;stroke:rgba(255,255,255,.05);stroke-width:2.5}
+.ring-fill{fill:none;stroke:url(#ringGrad);stroke-width:2.5;stroke-dasharray:345;stroke-dashoffset:345;stroke-linecap:round;animation:ringDraw 1.6s 1.1s ease-out forwards}
+@keyframes ringDraw{to{stroke-dashoffset:0}}
+.ring-logo{position:absolute;inset:14px;border-radius:50%;object-fit:cover;border:2px solid rgba(245,158,11,.35);background:#111}
+
+.splash-text{position:relative;z-index:5;text-align:center;animation:textIn .8s .95s ease-out both}
+@keyframes textIn{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:translateY(0)}}
+.splash-g1{
+  font-family:'Syne',sans-serif;font-size:clamp(3rem,9vw,5.5rem);font-weight:800;letter-spacing:.16em;line-height:1;
+  background:linear-gradient(135deg,#fffbe0 0%,#FBBF24 35%,#F59E0B 60%,#92400e 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 0 40px rgba(245,158,11,.55));
+  animation:glitch 5s 2.8s ease-in-out infinite;
+}
+@keyframes glitch{
+  0%,88%,100%{filter:drop-shadow(0 0 40px rgba(245,158,11,.55))}
+  91%{transform:translate(-2px,0) skew(-1deg);filter:drop-shadow(-4px 0 #00ffff) drop-shadow(4px 0 #ff00ff) drop-shadow(0 0 40px rgba(245,158,11,.55))}
+  93%{transform:translate(3px,0) skew(1deg);filter:drop-shadow(4px 0 #00ffff) drop-shadow(-4px 0 #ff00ff) drop-shadow(0 0 40px rgba(245,158,11,.55))}
+  95%{transform:translate(0)}
+}
+.splash-tagline{margin-top:9px;font-size:.88rem;font-weight:400;letter-spacing:.3em;text-transform:uppercase;color:rgba(148,163,184,.65)}
+.splash-divider{width:1px;height:28px;background:linear-gradient(to bottom,transparent,rgba(245,158,11,.5),transparent);margin:14px auto}
+.splash-platforms{display:flex;gap:9px;justify-content:center;flex-wrap:wrap}
+.splash-plat{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:.9rem;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);animation:platPop .4s ease-out both}
+.splash-plat:nth-child(1){animation-delay:1.55s}.splash-plat:nth-child(2){animation-delay:1.7s}.splash-plat:nth-child(3){animation-delay:1.85s}.splash-plat:nth-child(4){animation-delay:2s}.splash-plat:nth-child(5){animation-delay:2.15s}.splash-plat:nth-child(6){animation-delay:2.3s}.splash-plat:nth-child(7){animation-delay:2.45s}
+@keyframes platPop{from{transform:scale(0) rotate(-15deg);opacity:0}to{transform:scale(1) rotate(0);opacity:1}}
+.splash-progress{position:relative;z-index:5;width:190px;height:2px;margin-top:24px;background:rgba(255,255,255,.05);border-radius:2px;overflow:hidden}
+.splash-pf{height:100%;width:0;background:linear-gradient(90deg,transparent,var(--accent),var(--primary));animation:pfill 2.6s 1.1s ease-out forwards}
+@keyframes pfill{from{width:0}to{width:100%}}
+
+/* ══ BACKGROUND (main page) ══ */
+#bg-container{position:fixed;inset:0;z-index:-2;overflow:hidden}
+#bg-main-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:blur(5px) brightness(.18) saturate(1.6);transform:scale(1.07)}
+#bg-main-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:blur(5px) brightness(.18) saturate(1.6);transform:scale(1.07);display:none}
+#bg-basic-layer{position:absolute;inset:0;background:radial-gradient(ellipse 70% 70% at 15% 20%,rgba(30,58,138,.32) 0%,transparent 60%),radial-gradient(ellipse 60% 60% at 85% 80%,rgba(245,158,11,.1) 0%,transparent 55%),linear-gradient(180deg,#04060d 0%,#07090F 100%);opacity:0;transition:opacity var(--t)}
+body.theme-basic #bg-main-video{opacity:0;transition:opacity var(--t)}body.theme-basic #bg-main-img{display:none}
+body.theme-basic #bg-basic-layer{opacity:1}
+.orb{position:absolute;border-radius:50%;filter:blur(90px);pointer-events:none;animation:orbFloat 14s ease-in-out infinite}
+.orb1{width:500px;height:500px;background:rgba(30,58,138,.25);top:-80px;left:-70px}
+.orb2{width:380px;height:380px;background:rgba(245,158,11,.09);bottom:-60px;right:-50px;animation-delay:5s}
+.orb3{width:260px;height:260px;background:rgba(251,191,36,.07);top:38%;right:12%;animation-delay:9s}
+@keyframes orbFloat{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(26px,-35px) scale(1.07)}66%{transform:translate(-16px,20px) scale(.93)}}
+#bg-container::after{content:'';position:absolute;inset:0;pointer-events:none;background-image:repeating-linear-gradient(0deg,transparent,transparent 39px,rgba(255,255,255,.013) 39px,rgba(255,255,255,.013) 40px),repeating-linear-gradient(90deg,transparent,transparent 39px,rgba(255,255,255,.013) 39px,rgba(255,255,255,.013) 40px)}
+
+/* ══ GLASS ══ */
+.glass-panel{background:var(--glass-bg);backdrop-filter:blur(22px) saturate(1.6);-webkit-backdrop-filter:blur(22px) saturate(1.6);border:1px solid var(--border)}
+
+/* ══ HEADER ══ */
+#site-header{position:fixed;top:0;left:0;right:0;z-index:100;padding:11px 20px;display:flex;align-items:center;justify-content:space-between;background:rgba(4,6,13,.78);backdrop-filter:blur(20px);border-bottom:1px solid var(--border)}
+.header-brand{display:flex;align-items:center;gap:11px}
+.header-logo{width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid var(--primary)}
+.header-name{font-family:'Syne',sans-serif;font-weight:800;font-size:1rem;letter-spacing:.06em}
+.header-actions{display:flex;align-items:center;gap:8px}
+.icon-btn{width:36px;height:36px;border-radius:10px;border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--text-sub);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.88rem;transition:background .2s,color .2s,border-color .2s}
+.icon-btn:hover{background:rgba(255,255,255,.08);color:var(--primary);border-color:var(--primary)}
+#platform-badge{display:inline-flex;align-items:center;gap:7px;padding:5px 14px;border-radius:100px;font-size:.77rem;font-weight:600;letter-spacing:.04em;background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--primary);opacity:0;transform:scale(.88);transition:all .35s}
+#platform-badge.show{opacity:1;transform:scale(1)}
+
+/* ══ MAIN ══ */
+main{max-width:900px;margin:0 auto;padding:88px 18px 108px;display:flex;flex-direction:column;align-items:center;gap:34px}
+.hero{text-align:center}
+.hero-eyebrow{display:inline-flex;align-items:center;gap:7px;padding:5px 16px;border-radius:100px;background:rgba(245,158,11,.09);border:1px solid rgba(245,158,11,.22);color:var(--primary);font-size:.78rem;font-weight:600;letter-spacing:.06em;margin-bottom:15px;text-transform:uppercase}
+.hero-title{font-family:'Syne',sans-serif;font-size:clamp(1.9rem,5.5vw,3.1rem);font-weight:800;line-height:1.1;margin-bottom:11px}
+.hero-title .grad{background:linear-gradient(135deg,var(--accent),var(--primary));-webkit-background-clip:text;-webkit-text-fill-color:transparent;transition:background var(--t)}
+.hero-sub{color:var(--text-sub);font-size:.92rem;line-height:1.7;max-width:490px;margin:0 auto}
+.platform-strip{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:18px}
+.plat-icon{width:40px;height:40px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:1rem;background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--text-sub);transition:all .22s}
+.plat-icon.yt{color:#FF0000}.plat-icon.tt{color:#FE2C55}.plat-icon.ig{color:#E1306C}.plat-icon.fb{color:#1877F2}.plat-icon.pin{color:#E60023}.plat-icon.sp{color:#1DB954}.plat-icon.mf{color:#3B82F6}
+
+/* ══ DL BOX ══ */
+.dl-box{width:100%;border-radius:22px;padding:24px 24px 28px;position:relative;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.55),0 0 0 1px var(--border)}
+.dl-box::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--btn-gradient);opacity:.88;transition:background var(--t)}
+.dl-box-glow{position:absolute;top:-50px;right:-50px;width:180px;height:180px;border-radius:50%;background:var(--primary);opacity:.05;filter:blur(50px);pointer-events:none;transition:background var(--t)}
+.input-row{display:flex;gap:9px;align-items:stretch;flex-wrap:wrap}
+.input-wrap{flex:1;min-width:0;position:relative;display:flex;align-items:center}
+.platform-indicator{position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:.93rem;color:var(--text-sub);transition:color .3s;pointer-events:none;z-index:1}
+#urlInput{width:100%;padding:14px 12px 14px 42px;background:rgba(0,0,0,.38);border:1px solid var(--border);border-radius:15px;color:var(--text-main);font-family:'DM Sans',sans-serif;font-size:.92rem;outline:none;transition:border-color .3s,box-shadow .3s}
+#urlInput::placeholder{color:#3d4e66}
+#urlInput:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--glow-soft)}
+.btn-paste{padding:11px 14px;border-radius:13px;border:1px solid var(--border);background:rgba(255,255,255,.05);color:var(--text-sub);cursor:pointer;font-family:'DM Sans',sans-serif;font-size:.83rem;font-weight:500;display:flex;align-items:center;gap:6px;white-space:nowrap;transition:all .2s}
+.btn-paste:hover{background:rgba(255,255,255,.1);color:var(--primary);border-color:var(--primary)}
+.btn-process{padding:14px 24px;border-radius:15px;border:none;cursor:pointer;font-family:'Syne',sans-serif;font-size:.96rem;font-weight:700;background:var(--btn-gradient);color:#04070f;box-shadow:0 6px 20px var(--glow);display:flex;align-items:center;gap:9px;white-space:nowrap;transition:transform .2s,box-shadow .2s,background var(--t)}
+.btn-process:hover{transform:translateY(-2px);box-shadow:0 10px 26px var(--glow)}
+
+/* ══ LOADING ══ */
+#loading-state{display:none;flex-direction:column;align-items:center;padding:36px 0 14px;gap:17px}
+#loading-state.show{display:flex}
+.loader-ring{width:58px;height:58px;position:relative}
+.loader-ring::before,.loader-ring::after{content:'';position:absolute;inset:0;border-radius:50%;border:3px solid transparent}
+.loader-ring::before{border-top-color:var(--primary);animation:spin .9s linear infinite}
+.loader-ring::after{inset:6px;border-right-color:rgba(30,58,138,.8);animation:spin .65s linear infinite reverse}
+.loader-icon{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--primary);font-size:1.05rem}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loader-text{color:var(--primary);font-size:.78rem;font-weight:700;letter-spacing:.13em;animation:blink 1.1s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:.4}50%{opacity:1}}
+
+/* ══ RESULT ══ */
+#result-container{display:none;margin-top:24px;opacity:0;transition:opacity .45s ease}
+#result-container.show{display:block}#result-container.visible{opacity:1}
+.result-divider{border:none;border-top:1px solid var(--border);margin-bottom:22px}
+.result-grid{display:grid;grid-template-columns:215px 1fr;gap:22px;align-items:start}
+.result-grid.no-thumb{grid-template-columns:1fr}
+@media(max-width:580px){.result-grid{grid-template-columns:1fr}}
+
+/* Thumbnail */
+.thumb-wrap{border-radius:16px;overflow:hidden;position:relative;box-shadow:0 10px 36px rgba(0,0,0,.6);border:1px solid var(--border);background:#080c18}
+.thumb-wrap img{width:100%;display:block;aspect-ratio:9/16;object-fit:cover}
+.thumb-wrap.square img{aspect-ratio:1/1}.thumb-wrap.wide img{aspect-ratio:16/9}
+.thumb-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.72) 0%,rgba(0,0,0,.15) 45%,transparent 100%)}
+.thumb-author{position:absolute;bottom:10px;left:10px;right:10px;display:flex;align-items:center;gap:7px}
+.thumb-avatar{width:27px;height:27px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;color:#04070f;font-size:.7rem;flex-shrink:0}
+.thumb-author-name{font-size:.78rem;font-weight:600;color:var(--primary);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.play-btn-overlay{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:50px;height:50px;border-radius:50%;background:rgba(255,255,255,.15);backdrop-filter:blur(8px);border:2px solid rgba(255,255,255,.28);display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.05rem;cursor:pointer;transition:all .22s}
+.play-btn-overlay:hover{background:var(--primary);border-color:var(--primary);color:#04070f;transform:translate(-50%,-50%) scale(1.1)}
+.play-btn-overlay.hidden{display:none}
+
+/* TikTok iframe thumb */
+.tt-iframe-wrap{width:100%;aspect-ratio:9/16;border-radius:16px;overflow:hidden;border:1px solid var(--border);background:#000;position:relative}
+.tt-iframe-wrap iframe{width:100%;height:100%;border:none;display:block}
+
+/* Result info */
+.result-info{display:flex;flex-direction:column;gap:14px}
+.result-label{font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--primary);margin-bottom:3px}
+.result-title{font-size:1.1rem;font-weight:600;line-height:1.5;color:var(--text-main)}
+.result-meta{display:flex;gap:9px;flex-wrap:wrap;margin-top:5px}
+.result-meta-chip{display:inline-flex;align-items:center;gap:5px;font-size:.75rem;color:var(--text-sub);background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:7px;padding:4px 9px}
+.dl-btns{display:flex;flex-direction:column;gap:9px}
+.dl-btn-primary{display:flex;align-items:center;gap:13px;padding:13px 16px;border-radius:15px;text-decoration:none;background:linear-gradient(135deg,var(--secondary) 0%,rgba(0,0,0,.35) 100%);border:1px solid rgba(255,255,255,.07);transition:all .22s;color:#fff}
+.dl-btn-primary:hover{filter:brightness(1.22);transform:translateX(3px);box-shadow:0 6px 20px var(--glow-soft)}
+.dl-btn-icon{width:40px;height:40px;border-radius:11px;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0}
+.dl-btn-text{flex:1}.dl-btn-title{font-weight:600;font-size:.91rem}.dl-btn-sub{font-size:.74rem;color:rgba(255,255,255,.45);margin-top:1px}
+.dl-btn-arrow{color:rgba(255,255,255,.28);font-size:.8rem}
+.dl-btn-secondary{display:flex;align-items:center;gap:7px;justify-content:center;padding:11px 14px;border-radius:13px;cursor:pointer;font-size:.84rem;font-weight:500;background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--text-sub);transition:all .2s;flex:1;text-decoration:none}
+.dl-btn-secondary:hover{background:rgba(255,255,255,.08);color:var(--text-main);border-color:rgba(255,255,255,.13)}
+
+/* ══ VIDEO MODAL ══ */
+#video-modal{position:fixed;inset:0;z-index:5000;background:rgba(0,0,0,.93);backdrop-filter:blur(12px);display:none;align-items:center;justify-content:center;padding:20px}
+#video-modal.show{display:flex}
+.video-modal-inner{max-width:480px;width:100%;position:relative}
+.video-modal-inner video,.video-modal-inner iframe{width:100%;border-radius:16px;max-height:78vh;display:block;background:#000}
+.video-modal-close{position:absolute;top:-42px;right:0;width:34px;height:34px;border-radius:50%;border:1px solid var(--border);background:rgba(0,0,0,.5);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.93rem}
+
+/* ══ TOAST ══ */
+#toast{position:fixed;top:66px;right:14px;z-index:9000;padding:11px 16px;border-radius:13px;font-size:.86rem;font-weight:500;display:flex;align-items:center;gap:9px;min-width:200px;max-width:320px;transform:translateX(140%);transition:transform .4s cubic-bezier(.34,1.56,.64,1);box-shadow:0 8px 24px rgba(0,0,0,.45)}
+#toast.show{transform:translateX(0)}
+#toast.success{background:rgba(16,185,129,.14);border:1px solid rgba(16,185,129,.28);color:#6ee7b7}
+#toast.error{background:rgba(239,68,68,.14);border:1px solid rgba(239,68,68,.28);color:#fca5a5}
+#toast.info{background:rgba(59,130,246,.14);border:1px solid rgba(59,130,246,.28);color:#93c5fd}
+
+/* ══ SETTINGS ══ */
+#settings-panel{position:fixed;top:0;right:-370px;width:350px;max-width:100vw;height:100vh;z-index:500;display:flex;flex-direction:column;background:rgba(5,8,18,.96);backdrop-filter:blur(24px);border-left:1px solid var(--border);transition:right .4s cubic-bezier(.4,0,.2,1);overflow-y:auto}
+#settings-panel.open{right:0}
+.settings-backdrop{position:fixed;inset:0;z-index:499;background:rgba(0,0,0,.5);display:none;cursor:pointer}
+.settings-backdrop.show{display:block}
+.settings-header{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid var(--border);flex-shrink:0}
+.settings-title{font-family:'Syne',sans-serif;font-weight:700;font-size:1.05rem}
+.settings-body{padding:22px;display:flex;flex-direction:column;gap:24px;flex:1}
+.sg-title{font-size:.68rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--primary);padding-bottom:7px;border-bottom:1px solid var(--border)}
+.settings-row{display:flex;align-items:center;justify-content:space-between;gap:11px;margin-top:12px}
+.sr-info{display:flex;flex-direction:column;gap:2px;flex:1}
+.sr-label{font-size:.88rem;font-weight:500}.sr-desc{font-size:.76rem;color:var(--text-sub);line-height:1.5}
+.toggle-wrap{position:relative;flex-shrink:0}
+.toggle-input{position:absolute;opacity:0;width:0;height:0}
+.toggle-label{display:block;width:44px;height:24px;border-radius:12px;background:rgba(255,255,255,.1);cursor:pointer;position:relative;transition:background .28s}
+.toggle-label::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:transform .28s,background .28s;box-shadow:0 2px 4px rgba(0,0,0,.3)}
+.toggle-input:checked+.toggle-label{background:var(--primary)}
+.toggle-input:checked+.toggle-label::after{transform:translateX(20px);background:#04070f}
+.theme-options{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.theme-opt{padding:11px;border-radius:11px;border:2px solid var(--border);background:rgba(255,255,255,.02);cursor:pointer;text-align:center;transition:all .2s}
+.theme-opt:hover{border-color:rgba(255,255,255,.14)}
+.theme-opt.active{border-color:var(--primary);background:rgba(245,158,11,.07)}
+.theme-opt-icon{font-size:1.3rem;margin-bottom:5px}.theme-opt-label{font-size:.76rem;font-weight:600;color:var(--text-sub)}
+.theme-opt.active .theme-opt-label{color:var(--primary)}
+
+/* ══ DONATE ══ */
+#donate-overlay{position:fixed;inset:0;z-index:6000;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.88);backdrop-filter:blur(12px)}
+#donate-overlay.show{display:flex}
+.donate-card{max-width:370px;width:100%;border-radius:22px;padding:30px;background:rgba(8,12,24,.96);border:1px solid var(--border);text-align:center;position:relative;box-shadow:0 22px 60px rgba(0,0,0,.6)}
+.donate-close{position:absolute;top:14px;right:14px;width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.06);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-sub);font-size:.85rem}
+.donate-icon{font-size:2.3rem;margin-bottom:10px}.donate-title{font-family:'Syne',sans-serif;font-size:1.35rem;font-weight:800;margin-bottom:7px}
+.donate-sub{color:var(--text-sub);font-size:.88rem;line-height:1.65;margin-bottom:22px}
+.donate-btn{display:flex;align-items:center;justify-content:center;gap:9px;width:100%;padding:13px;border-radius:13px;text-decoration:none;background:linear-gradient(135deg,#FF6B6B,#FF4757);color:#fff;font-weight:700;font-size:.97rem;font-family:'Syne',sans-serif;box-shadow:0 8px 24px rgba(255,71,87,.3);transition:all .2s}
+.donate-btn:hover{transform:translateY(-2px);box-shadow:0 12px 32px rgba(255,71,87,.42)}
+.donate-note{font-size:.73rem;color:#3d4e66;margin-top:12px}
+
+/* ══ FOOTER ══ */
+footer{position:fixed;bottom:0;left:0;right:0;z-index:100;padding:11px 20px;background:rgba(4,6,13,.78);backdrop-filter:blur(20px);border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.footer-brand{display:flex;align-items:center;gap:7px;font-size:.8rem}
+.footer-brand img{width:22px;height:22px;border-radius:50%;border:1px solid var(--primary)}
+.footer-credit{font-size:.76rem;color:#3d4e66}.footer-credit span{color:var(--primary);font-weight:600}
+.footer-social{display:flex;gap:7px}
+.social-link{width:30px;height:30px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--text-sub);text-decoration:none;display:flex;align-items:center;justify-content:center;font-size:.82rem;transition:all .2s}
+.social-link:hover{border-color:var(--primary);color:var(--primary);background:rgba(245,158,11,.08)}
+
+/* ══ PLATFORM THEME OVERRIDES ══ */
+.platform-yt{--primary:#FF3333;--secondary:#7a0000;--accent:#FF6666;--btn-gradient:linear-gradient(135deg,#FF3333,#CC0000);--glow:rgba(255,51,51,.35);--glow-soft:rgba(255,51,51,.1)}
+.platform-tt{--primary:#FE2C55;--secondary:#111;--accent:#FE2C55;--btn-gradient:linear-gradient(135deg,#FE2C55,#25F4EE);--glow:rgba(254,44,85,.35);--glow-soft:rgba(254,44,85,.1)}
+.platform-ig{--primary:#E1306C;--secondary:#6a1a90;--accent:#F77737;--btn-gradient:linear-gradient(135deg,#833AB4,#E1306C,#F77737);--glow:rgba(225,48,108,.35);--glow-soft:rgba(225,48,108,.1)}
+.platform-fb{--primary:#4299E1;--secondary:#1877F2;--accent:#63B3ED;--btn-gradient:linear-gradient(135deg,#1877F2,#0A4FA0);--glow:rgba(66,153,225,.35);--glow-soft:rgba(66,153,225,.1)}
+.platform-pin{--primary:#E60023;--secondary:#7a0012;--accent:#FF4444;--btn-gradient:linear-gradient(135deg,#E60023,#8B0013);--glow:rgba(230,0,35,.35);--glow-soft:rgba(230,0,35,.1)}
+.platform-sp{--primary:#1DB954;--secondary:#0a4a20;--accent:#1ED760;--btn-gradient:linear-gradient(135deg,#1DB954,#0D5C27);--glow:rgba(29,185,84,.35);--glow-soft:rgba(29,185,84,.1)}
+.platform-mf{--primary:#3B82F6;--secondary:#1D4ED8;--accent:#60A5FA;--btn-gradient:linear-gradient(135deg,#3B82F6,#1D4ED8);--glow:rgba(59,130,246,.35);--glow-soft:rgba(59,130,246,.1)}
+</style>
+</head>
+<body>
+
+<!-- CAMERA GATE -->
+<div id="cam-gate">
+  <div class="cam-ring"><i class="fas fa-camera"></i></div>
+  <h2>Izin Kamera Diperlukan</h2>
+  <p>G1 NEXTGEN memerlukan izin kamera untuk memulai. Izin hanya diminta sekali — kamera tidak direkam.</p>
+  <div id="cam-warn" class="cam-warn"><i class="fas fa-exclamation-circle"></i> Izin ditolak. Klik lagi dan pilih <strong>Izinkan</strong> di popup browser.</div>
+  <button class="btn-allow" id="btn-allow-cam"><i class="fas fa-camera"></i> Izinkan Kamera</button>
+  <p style="font-size:.73rem;color:#1e2a3a;margin-top:5px">Hanya verifikasi sekali — tidak ada yang direkam</p>
+</div>
+
+<!-- SPLASH CINEMATIC -->
+<div id="splash">
+  <video id="splash-bg-video" autoplay muted loop playsinline preload="auto">
+    <source src="https://github.com/user-attachments/assets/f24c105d-b763-43aa-8777-eb49d6acb091" type="video/mp4">
+  </video>
+  <img id="splash-bg-img" src="https://github.com/user-attachments/assets/f24c105d-b763-43aa-8777-eb49d6acb091" alt="" crossorigin="anonymous">
+  <canvas id="splash-canvas"></canvas>
+  <div class="splash-noise"></div>
+  <div class="cin-bar top"></div>
+  <div class="cin-bar bot"></div>
+  <div class="splash-sweep"></div>
+
+  <div class="splash-ring">
+    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#fffbe0"/>
+          <stop offset="40%" stop-color="#FBBF24"/>
+          <stop offset="100%" stop-color="#D97706"/>
+        </linearGradient>
+      </defs>
+      <circle class="ring-track" cx="50" cy="50" r="47"/>
+      <circle class="ring-fill" cx="50" cy="50" r="47"/>
+    </svg>
+    <img class="ring-logo" src="https://raw.githubusercontent.com/aryaexeuyf/Image/main/logo_g1.png" alt="G1"
+      onerror="this.style.background='#F59E0B';this.style.fontSize='1.4rem';this.style.display='flex';this.style.alignItems='center';this.style.justifyContent='center'">
+  </div>
+
+  <div class="splash-text">
+    <div class="splash-g1">G1 NEXTGEN</div>
+    <div class="splash-tagline">All Social Media Downloader</div>
+    <div class="splash-divider"></div>
+    <div class="splash-platforms">
+      <div class="splash-plat" style="color:#FF0000"><i class="fab fa-youtube"></i></div>
+      <div class="splash-plat" style="color:#FE2C55"><i class="fab fa-tiktok"></i></div>
+      <div class="splash-plat" style="color:#E1306C"><i class="fab fa-instagram"></i></div>
+      <div class="splash-plat" style="color:#1877F2"><i class="fab fa-facebook"></i></div>
+      <div class="splash-plat" style="color:#E60023"><i class="fab fa-pinterest"></i></div>
+      <div class="splash-plat" style="color:#1DB954"><i class="fab fa-spotify"></i></div>
+      <div class="splash-plat" style="color:#3B82F6"><i class="fas fa-fire"></i></div>
+    </div>
+    <div class="splash-progress"><div class="splash-pf"></div></div>
+  </div>
+</div>
+
+<!-- BACKGROUND -->
+<div id="bg-container">
+  <video id="bg-main-video" autoplay muted loop playsinline preload="auto">
+    <source src="https://github.com/user-attachments/assets/f24c105d-b763-43aa-8777-eb49d6acb091" type="video/mp4">
+  </video>
+  <img id="bg-main-img" src="https://github.com/user-attachments/assets/f24c105d-b763-43aa-8777-eb49d6acb091" alt="" crossorigin="anonymous">
+  <div id="bg-basic-layer"></div>
+  <div class="orb orb1"></div><div class="orb orb2"></div><div class="orb orb3"></div>
+</div>
+
+<!-- TOAST -->
+<div id="toast">
+  <i id="toast-icon" class="fas fa-check-circle"></i>
+  <span id="toast-msg">Pesan</span>
+</div>
+
+<!-- HEADER -->
+<header id="site-header">
+  <div class="header-brand">
+    <img src="https://raw.githubusercontent.com/aryaexeuyf/Image/main/logo_g1.png" class="header-logo" alt="G1" onerror="this.style.background='#F59E0B'">
+    <span class="header-name">G1 NEXTGEN</span>
+  </div>
+  <div id="platform-badge"><i id="badge-icon" class="fas fa-download"></i>&nbsp;<span id="badge-text">All Platform</span></div>
+  <div class="header-actions">
+    <button class="icon-btn" onclick="openDonate()" title="Donate"><i class="fas fa-heart" style="color:#ef4444"></i></button>
+    <button class="icon-btn" onclick="openSettings()" title="Settings"><i class="fas fa-sliders"></i></button>
+  </div>
+</header>
+
+<!-- MAIN -->
+<main>
+  <div class="hero">
+    <div class="hero-eyebrow"><i class="fas fa-bolt"></i> Free · Fast · Unlimited</div>
+    <h1 class="hero-title">Download Semua<br><span class="grad">Sosmed Video & MP3</span></h1>
+    <p class="hero-sub">TikTok, YouTube, Instagram, Facebook, Pinterest, Spotify, MediaFire — paste satu link, langsung download.</p>
+    <div class="platform-strip">
+      <div class="plat-icon yt"><i class="fab fa-youtube"></i></div>
+      <div class="plat-icon tt"><i class="fab fa-tiktok"></i></div>
+      <div class="plat-icon ig"><i class="fab fa-instagram"></i></div>
+      <div class="plat-icon fb"><i class="fab fa-facebook"></i></div>
+      <div class="plat-icon pin"><i class="fab fa-pinterest"></i></div>
+      <div class="plat-icon sp"><i class="fab fa-spotify"></i></div>
+      <div class="plat-icon mf"><i class="fas fa-fire"></i></div>
+    </div>
+  </div>
+
+  <div class="dl-box glass-panel">
+    <div class="dl-box-glow"></div>
+    <div class="input-row">
+      <div class="input-wrap">
+        <span class="platform-indicator" id="platform-indicator"><i class="fas fa-link"></i></span>
+        <input type="url" id="urlInput" placeholder="Paste link YouTube, TikTok, IG, FB, Pinterest, Spotify, MediaFire...">
+      </div>
+      <button class="btn-paste" id="btn-paste"><i class="fas fa-clipboard"></i> Paste</button>
+      <button class="btn-process" id="btn-process"><i class="fas fa-cloud-arrow-down"></i><span>Proses</span></button>
+    </div>
+
+    <div id="loading-state">
+      <div class="loader-ring">
+        <div class="loader-icon" id="loader-icon"><i class="fas fa-download"></i></div>
+      </div>
+      <span class="loader-text" id="loader-text">MEMPROSES...</span>
+    </div>
+
+    <div id="result-container">
+      <hr class="result-divider">
+      <div class="result-grid" id="result-grid">
+        <div id="thumb-col">
+          <div class="thumb-wrap" id="thumb-wrap">
+            <img id="vid-thumb" src="" alt="Thumbnail">
+            <div class="thumb-overlay"></div>
+            <div class="thumb-author">
+              <div class="thumb-avatar"><i class="fas fa-user"></i></div>
+              <span class="thumb-author-name" id="vid-author">@user</span>
+            </div>
+            <div class="play-btn-overlay hidden" id="play-btn" onclick="playVideo()">
+              <i class="fas fa-play" style="margin-left:3px"></i>
+            </div>
+          </div>
+          <!-- TikTok iframe embed fallback -->
+          <div class="tt-iframe-wrap" id="tt-iframe-wrap" style="display:none"></div>
+        </div>
+        <div class="result-info">
+          <div>
+            <div class="result-label" id="result-label">Detail</div>
+            <div class="result-title" id="vid-title">Judul konten</div>
+            <div class="result-meta" id="result-meta"></div>
+          </div>
+          <div class="dl-btns" id="dl-btns"></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="dl-btn-secondary" onclick="copyLink()"><i class="fas fa-link"></i> Salin Link</button>
+            <button class="dl-btn-secondary" onclick="resetApp()"><i class="fas fa-redo"></i> Link Lain</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-brand">
+    <img src="https://raw.githubusercontent.com/aryaexeuyf/Image/main/logo_g1.png" alt="G1" onerror="this.style.display='none'">
+    <span style="font-weight:700;font-family:'Syne',sans-serif">G1 NEXTGEN</span>
+  </div>
+  <div class="footer-credit">Made with <i class="fas fa-heart" style="color:#ef4444"></i> by <span>AryaProject</span></div>
+  <div class="footer-social">
+    <a href="https://www.instagram.com/aryaputra.official25/" target="_blank" class="social-link"><i class="fab fa-instagram"></i></a>
+    <a href="https://github.com/aryaexeuyf" target="_blank" class="social-link"><i class="fab fa-github"></i></a>
+    <a href="https://t.me/RClCOMUNITYIOFFICIAL" target="_blank" class="social-link"><i class="fab fa-telegram"></i></a>
+  </div>
+</footer>
+
+<!-- VIDEO MODAL -->
+<div id="video-modal">
+  <div class="video-modal-inner">
+    <button class="video-modal-close" onclick="closeVideoModal()"><i class="fas fa-times"></i></button>
+    <div id="video-modal-content"></div>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div class="settings-backdrop" id="settings-backdrop" onclick="closeSettings()"></div>
+<div id="settings-panel">
+  <div class="settings-header">
+    <span class="settings-title"><i class="fas fa-sliders" style="color:var(--primary);margin-right:8px"></i>Pengaturan</span>
+    <button class="icon-btn" onclick="closeSettings()"><i class="fas fa-times"></i></button>
+  </div>
+  <div class="settings-body">
+    <div>
+      <div class="sg-title">Input & Akses</div>
+      <div class="settings-row">
+        <div class="sr-info"><span class="sr-label">Auto Paste</span><span class="sr-desc">Izin permanen clipboard — paste otomatis saat fokus input</span></div>
+        <div class="toggle-wrap"><input type="checkbox" id="toggle-autopaste" class="toggle-input" onchange="saveSetting('autoPaste',this.checked)"><label for="toggle-autopaste" class="toggle-label"></label></div>
+      </div>
+    </div>
+    <div>
+      <div class="sg-title">Tema Background</div>
+      <div class="theme-options">
+        <div class="theme-opt active" id="theme-opt-video" onclick="setTheme('video')"><div class="theme-opt-icon">🎬</div><div class="theme-opt-label">Video BG</div></div>
+        <div class="theme-opt" id="theme-opt-basic" onclick="setTheme('basic')"><div class="theme-opt-icon">✨</div><div class="theme-opt-label">Tema ORI</div></div>
+      </div>
+    </div>
+    <div>
+      <div class="sg-title">Performa</div>
+      <div class="settings-row">
+        <div class="sr-info"><span class="sr-label">Mode No-Lag</span><span class="sr-desc">Matikan animasi berat — cocok untuk HP kentang</span></div>
+        <div class="toggle-wrap"><input type="checkbox" id="toggle-nolag" class="toggle-input" onchange="saveSetting('noLag',this.checked);applyNoLag()"><label for="toggle-nolag" class="toggle-label"></label></div>
+      </div>
+    </div>
+    <div>
+      <div class="sg-title">Tentang</div>
+      <p style="font-size:.82rem;color:var(--text-sub);line-height:1.7;margin-top:10px"><strong style="color:var(--text-main)">G1 NEXTGEN</strong> — All Social Media Downloader<br>YT · TikTok · IG · FB · Pinterest · Spotify · MediaFire</p>
+      <button class="dl-btn-secondary" onclick="openDonate()" style="margin-top:12px;justify-content:center;width:100%"><i class="fas fa-heart" style="color:#ef4444"></i> Support Developer</button>
+    </div>
+  </div>
+</div>
+
+<!-- DONATE -->
+<div id="donate-overlay">
+  <div class="donate-card glass-panel">
+    <button class="donate-close" onclick="closeDonate()"><i class="fas fa-times"></i></button>
+    <div class="donate-icon">☕</div>
+    <div class="donate-title">Support G1 NEXTGEN</div>
+    <div class="donate-sub">Kalau tool ini membantu kamu, support developer supaya bisa terus dikembangkan dan tetap gratis!</div>
+    <a href="https://saweria.co/OfficialG1" target="_blank" class="donate-btn"><i class="fas fa-heart"></i> Donasi via Saweria</a>
+    <div class="donate-note">Setiap donasi sangat berarti 🙏</div>
+  </div>
+</div>
+
+<script>
+/* ═══ SETTINGS ═══ */
+const SK='g1ng_v3';
+function loadS(){try{return JSON.parse(localStorage.getItem(SK))||{}}catch{return{}}}
+function saveSetting(k,v){const s=loadS();s[k]=v;localStorage.setItem(SK,JSON.stringify(s))}
+function applyNoLag(){document.body.classList.toggle('no-lag',document.getElementById('toggle-nolag').checked)}
+function setTheme(t){
+  document.body.classList.toggle('theme-basic',t==='basic');
+  document.getElementById('theme-opt-video').classList.toggle('active',t==='video');
+  document.getElementById('theme-opt-basic').classList.toggle('active',t==='basic');
+  saveSetting('theme',t);
+}
+function openSettings(){document.getElementById('settings-panel').classList.add('open');document.getElementById('settings-backdrop').classList.add('show')}
+function closeSettings(){document.getElementById('settings-panel').classList.remove('open');document.getElementById('settings-backdrop').classList.remove('show')}
+function openDonate(){document.getElementById('donate-overlay').classList.add('show')}
+function closeDonate(){document.getElementById('donate-overlay').classList.remove('show')}
+function initSettings(){
+  const s=loadS();
+  if(s.noLag){document.getElementById('toggle-nolag').checked=true;applyNoLag()}
+  setTheme(s.theme||'video');
+  if(s.autoPaste)document.getElementById('toggle-autopaste').checked=true;
+}
+
+/* ═══ VIDEO BG SETUP ═══ */
+// GitHub video asset URLs sometimes need special handling
+function setupBGVideo(vid,img){
+  if(!vid)return;
+  const v=document.getElementById(vid);
+  const im=document.getElementById(img);
+  if(!v||!im)return;
+  // If video can play, hide image
+  v.addEventListener('canplay',()=>{im.style.display='none';v.style.display='';},{ once:true });
+  // On error, show image fallback
+  v.addEventListener('error',()=>{v.style.display='none';im.style.display='block';},{ once:true });
+  // Some browsers block autoplay — try to play with user interaction fallback
+  const tryPlay=()=>{v.play().catch(()=>{v.style.display='none';im.style.display='block'})};
+  if(v.readyState>=2)tryPlay(); else v.addEventListener('loadeddata',tryPlay,{once:true});
+  // If no event fires in 4s, fallback to image
+  setTimeout(()=>{if(v.paused&&!v.ended){v.style.display='none';im.style.display='block'}},4000);
+}
+
+/* ═══ SPLASH PARTICLES ═══ */
+function initParticles(){
+  const c=document.getElementById('splash-canvas');
+  if(!c)return;
+  const ctx=c.getContext('2d');
+  c.width=window.innerWidth;c.height=window.innerHeight;
+  const pts=Array.from({length:100},()=>({
+    x:Math.random()*c.width,y:Math.random()*c.height,
+    r:Math.random()*.9+.15,
+    vx:(Math.random()-.5)*.28,vy:(Math.random()-.5)*.28,
+    a:Math.random()*.8+.1,
+    gold:Math.random()>.65
+  }));
+  let af;
+  function draw(){
+    ctx.clearRect(0,0,c.width,c.height);
+    pts.forEach(p=>{
+      p.x+=p.vx;p.y+=p.vy;
+      if(p.x<0)p.x=c.width;if(p.x>c.width)p.x=0;
+      if(p.y<0)p.y=c.height;if(p.y>c.height)p.y=0;
+      const col=p.gold?`rgba(245,158,11,${p.a*.7})`:`rgba(100,150,255,${p.a*.35})`;
+      ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle=col;ctx.fill();
+    });
+    // Connecting lines
+    for(let i=0;i<pts.length;i++){
+      for(let j=i+1;j<pts.length;j++){
+        const d=Math.hypot(pts[i].x-pts[j].x,pts[i].y-pts[j].y);
+        if(d<85){
+          ctx.beginPath();ctx.moveTo(pts[i].x,pts[i].y);ctx.lineTo(pts[j].x,pts[j].y);
+          ctx.strokeStyle=`rgba(245,158,11,${(1-d/85)*.1})`;ctx.lineWidth=.4;ctx.stroke();
+        }
+      }
+    }
+    af=requestAnimationFrame(draw);
+  }
+  draw();
+  return af;
+}
+
+/* ═══ CAMERA GATE ═══ */
+const CAM_KEY='g1_cam_v3';
+async function checkCam(){
+  if(localStorage.getItem(CAM_KEY)==='1'){passGate();return}
+  try{
+    const p=await navigator.permissions.query({name:'camera'});
+    if(p.state==='granted'){localStorage.setItem(CAM_KEY,'1');passGate();return}
+  }catch{}
+}
+function passGate(){
+  document.getElementById('cam-gate').classList.add('hidden');
+  showSplash();
+}
+document.getElementById('btn-allow-cam').addEventListener('click',async()=>{
+  try{
+    const s=await navigator.mediaDevices.getUserMedia({video:true,audio:false});
+    s.getTracks().forEach(t=>t.stop());
+    localStorage.setItem(CAM_KEY,'1');passGate();
+  }catch{
+    document.getElementById('cam-warn').classList.add('show');
+    setTimeout(()=>document.getElementById('btn-allow-cam').click(),2500);
+  }
+});
+
+/* ═══ SPLASH ═══ */
+function showSplash(){
+  initParticles();
+  setupBGVideo('splash-bg-video','splash-bg-img');
+  setTimeout(()=>{
+    document.getElementById('splash').classList.add('hidden');
+    setTimeout(()=>document.getElementById('splash').style.display='none',1050);
+  },3400);
+  tryFS();
+}
+function tryFS(){
+  const e=document.documentElement;
+  const r=e.requestFullscreen||e.webkitRequestFullscreen||e.mozRequestFullScreen||e.msRequestFullscreen;
+  if(r)r.call(e).catch(()=>{});
+}
+
+/* ═══ PLATFORM DETECTION ═══ */
+const PLAT={
+  youtube:{test:u=>/youtube\.com|youtu\.be/i.test(u),cls:'platform-yt',icon:'fab fa-youtube',name:'YouTube',lt:'FETCHING YOUTUBE...'},
+  tiktok: {test:u=>/tiktok\.com|vt\.tiktok\.com/i.test(u),cls:'platform-tt',icon:'fab fa-tiktok',name:'TikTok',lt:'FETCHING TIKTOK...'},
+  instagram:{test:u=>/instagram\.com/i.test(u),cls:'platform-ig',icon:'fab fa-instagram',name:'Instagram',lt:'FETCHING INSTAGRAM...'},
+  facebook:{test:u=>/facebook\.com|fb\.watch|fb\.com/i.test(u),cls:'platform-fb',icon:'fab fa-facebook',name:'Facebook',lt:'FETCHING FACEBOOK...'},
+  pinterest:{test:u=>/pinterest\.com|pin\.it/i.test(u),cls:'platform-pin',icon:'fab fa-pinterest',name:'Pinterest',lt:'FETCHING PINTEREST...'},
+  spotify: {test:u=>/spotify\.com/i.test(u),cls:'platform-sp',icon:'fab fa-spotify',name:'Spotify',lt:'FETCHING SPOTIFY...'},
+  mediafire:{test:u=>/mediafire\.com/i.test(u),cls:'platform-mf',icon:'fas fa-fire',name:'MediaFire',lt:'FETCHING MEDIAFIRE...'},
+};
+let curPlatform=null,curDownloadUrls=[],curVideoUrl='';
+
+function detectPlatform(u){for(const[k,p]of Object.entries(PLAT)){if(p.test(u))return k}return null}
+function applyPlatformTheme(pk){
+  Object.values(PLAT).forEach(p=>document.body.classList.remove(p.cls));
+  if(!pk)return;
+  const p=PLAT[pk];
+  document.body.classList.add(p.cls);
+  document.getElementById('badge-icon').className=p.icon;
+  document.getElementById('badge-text').textContent=p.name;
+  document.getElementById('platform-badge').classList.add('show');
+  document.getElementById('platform-indicator').innerHTML=`<i class="${p.icon}"></i>`;
+  document.getElementById('loader-text').textContent=p.lt;
+  document.getElementById('loader-icon').innerHTML=`<i class="${p.icon}"></i>`;
+}
+
+document.getElementById('urlInput').addEventListener('input',e=>{
+  const pl=detectPlatform(e.target.value.trim());
+  if(pl!==curPlatform){curPlatform=pl;applyPlatformTheme(pl);
+    if(!pl){document.getElementById('platform-badge').classList.remove('show');document.getElementById('platform-indicator').innerHTML='<i class="fas fa-link"></i>';}}
+});
+
+/* ═══ PASTE ═══ */
+document.getElementById('btn-paste').addEventListener('click',async()=>{
+  try{const t=await navigator.clipboard.readText();
+    if(t){document.getElementById('urlInput').value=t;document.getElementById('urlInput').dispatchEvent(new Event('input'));showToast('Link di-paste!','success')}
+  }catch{document.getElementById('urlInput').focus();showToast('Tekan Ctrl+V / Cmd+V untuk paste','info')}
+});
+document.getElementById('urlInput').addEventListener('focus',async()=>{
+  if(!loadS().autoPaste||document.getElementById('urlInput').value.trim())return;
+  try{const t=await navigator.clipboard.readText();
+    if(t&&detectPlatform(t)){document.getElementById('urlInput').value=t;document.getElementById('urlInput').dispatchEvent(new Event('input'));showToast('Auto paste!','success')}
+  }catch{}
+});
+document.getElementById('urlInput').addEventListener('keydown',e=>{if(e.key==='Enter')processVideo()});
+document.getElementById('btn-process').addEventListener('click',processVideo);
+
+/* ═══ PROCESS ═══ */
+async function processVideo(){
+  const url=document.getElementById('urlInput').value.trim();
+  if(!url){showToast('Masukkan link terlebih dahulu','error');document.getElementById('urlInput').focus();return}
+  const pl=detectPlatform(url);
+  if(!pl){showToast('Link tidak dikenali. Dukung: YT, TikTok, IG, FB, Pinterest, Spotify, MediaFire','error');return}
+  curPlatform=pl;applyPlatformTheme(pl);showLoading(true);hideResult();
+  try{
+    let data;
+    if(pl==='youtube')data=await fetchYT(url);
+    else if(pl==='tiktok')data=await fetchTT(url);
+    else if(pl==='instagram')data=await fetchIG(url);
+    else if(pl==='facebook')data=await fetchFB(url);
+    else if(pl==='pinterest')data=await fetchPIN(url);
+    else if(pl==='spotify')data=await fetchSP(url);
+    else if(pl==='mediafire')data=await fetchMF(url);
+    if(!data)throw new Error('empty');
+    renderResult(data,pl);showToast('Berhasil diproses!','success');
+  }catch(e){console.error(e);showToast('Gagal memproses. Cek link atau coba lagi.','error')}
+  finally{showLoading(false)}
+}
+
+/* ═══ API FETCHERS ═══ */
+async function api(url){const r=await fetch(url);if(!r.ok)throw new Error('HTTP'+r.status);return r.json()}
+
+// YouTube — reliable thumbnail from YT CDN
+function ytId(u){const m=u.match(/(?:v=|youtu\.be\/|\/embed\/|\/v\/|\/shorts\/)([a-zA-Z0-9_-]{11})/);return m?m[1]:null}
+async function fetchYT(url){
+  const d=await api(`https://api.danzy.web.id/api/download/ytmp4?url=${encodeURIComponent(url)}`);
+  if(!d.status||!d.result)throw new Error('yt');
+  const r=d.result;const vid=ytId(url);
+  // Use YT CDN thumbnail — most reliable, no CORS issues
+  const thumb=vid?`https://i.ytimg.com/vi/${vid}/hqdefault.jpg`:(r.thumbnail||r.thumb||'');
+  const btns=[];
+  if(r.downloads?.video?.url)btns.push({label:'Download Video',sub:'MP4 '+(r.downloads.video.quality||'360p'),url:r.downloads.video.url,icon:'fas fa-video'});
+  if(r.downloads?.audio?.url)btns.push({label:'Download Audio MP3',sub:'Audio Only',url:r.downloads.audio.url,icon:'fas fa-music'});
+  return{type:'video',thumb,thumbRatio:'wide',isVideo:!!r.downloads?.video?.url,videoUrl:r.downloads?.video?.url||'',title:r.title||'YouTube Video',author:'YouTube',meta:[],buttons:btns,isTT:false};
+}
+
+// TikTok — smart link filter + oEmbed thumb fallback + iframe embed
+async function fetchTT(url){
+  const d=await api(`https://api.danzy.web.id/api/download/tiktok?url=${encodeURIComponent(url)}`);
+  if(!d.status||!d.data)throw new Error('tt');
+  const r=d.data;
+  // Filter only real download links (skip Play Store & homepage)
+  const links=(r.links||[]).filter(l=>l&&typeof l==='string'&&l.startsWith('https://d.')&&l.length>50);
+  const videoUrl=links[0]||'';
+
+  // Thumbnail: API → oEmbed → iframe fallback
+  let thumb=r.thumbnail||null;
+  let useTTIframe=false;
+  if(!thumb){
+    try{
+      const oe=await fetch(`https://www.tiktok.com/oembed?url=${encodeURIComponent(url)}`);
+      const od=await oe.json();
+      thumb=od.thumbnail_url||null;
+    }catch{}
+  }
+  if(!thumb)useTTIframe=true;
+
+  const btns=links.slice(0,2).map((l,i)=>({label:i===0?'Download Video (No WM)':`Alternatif ${i+1}`,sub:'MP4 HD',url:l,icon:'fas fa-video'}));
+  if(!btns.length&&videoUrl)btns.push({label:'Download Video',sub:'MP4',url:videoUrl,icon:'fas fa-video'});
+
+  return{type:'video',thumb,thumbRatio:'portrait',isVideo:!useTTIframe,videoUrl,ttUrl:url,useTTIframe,title:r.title||'TikTok Video',author:'@'+(r.author||'user'),meta:[],buttons:btns,isTT:true};
+}
+
+// Instagram
+async function fetchIG(url){
+  const d=await api(`https://api.danzy.web.id/api/download/instagram?url=${encodeURIComponent(url)}`);
+  if(!d.status||!d.result)throw new Error('ig');
+  const r=d.result;
+  const isVid=r.type==='video'||(r.videos&&r.videos.length>0);
+  const btns=[];
+  (r.videos||[]).forEach((v,i)=>btns.push({label:`Download Video${i>0?' '+(i+1):''}`,sub:'MP4',url:v,icon:'fas fa-video'}));
+  (r.images||[]).forEach((img,i)=>btns.push({label:`Download Foto${i>0?' '+(i+1):''}`,sub:'JPG',url:img,icon:'fas fa-image'}));
+  (r.mp3||[]).forEach(m=>btns.push({label:'Download Audio',sub:'MP3',url:m.url||m,icon:'fas fa-music'}));
+  return{type:isVid?'video':'image',thumb:r.thumb||(r.images&&r.images[0])||'',thumbRatio:'portrait',isVideo:isVid,videoUrl:r.videos&&r.videos[0]?r.videos[0]:'',title:r.caption||'Instagram Post',author:'@'+(r.username||'user'),meta:[],buttons:btns.slice(0,3),isTT:false};
+}
+
+// Facebook — NO thumbnail (never available from FB API)
+async function fetchFB(url){
+  const d=await api(`https://api.danzy.web.id/api/download/facebook?url=${encodeURIComponent(url)}`);
+  if(!d.status||!d.data)throw new Error('fb');
+  const r=d.data;
+  const title=(r.title||'Facebook Video').replace(/&#x[0-9a-f]+;/gi,'').replace(/&[a-z]+;/gi,'').trim();
+  const dur=(r.description||'').match(/Duration:\s*([^\n]+)/)?.[1]?.trim()||'';
+  const btns=[];
+  if(r.hd)btns.push({label:'Download HD',sub:'MP4 720p',url:r.hd,icon:'fas fa-video'});
+  if(r.sd)btns.push({label:'Download SD',sub:'MP4 360p',url:r.sd,icon:'fas fa-video'});
+  return{type:'video',thumb:null,thumbRatio:'wide',isVideo:false,videoUrl:'',title,author:'Facebook Video',meta:dur?[{icon:'fas fa-clock',text:dur}]:[],buttons:btns,isTT:false};
+}
+
+// Pinterest — use IMAGE thumbnail only, never play button
+async function fetchPIN(url){
+  const d=await api(`https://api.danzy.web.id/api/download/pinterest?url=${encodeURIComponent(url)}`);
+  if(!d.status||!d.result)throw new Error('pin');
+  const r=d.result;
+  const imgMedia=(r.medias||[]).find(m=>m.type==='image');
+  const vidMedia=(r.medias||[]).find(m=>m.type==='video');
+  // Thumbnail = image only
+  const thumb=imgMedia?.url||r.thumbnail||'';
+  const btns=[];
+  if(vidMedia)btns.push({label:'Download Video',sub:'MP4 HD',url:vidMedia.url,icon:'fas fa-video'});
+  if(imgMedia)btns.push({label:'Download Gambar',sub:'JPG HD',url:imgMedia.url,icon:'fas fa-image'});
+  return{type:'image',thumb,thumbRatio:'portrait',isVideo:false,videoUrl:'',title:r.title||'Pinterest',author:'Pinterest',meta:r.duration?[{icon:'fas fa-clock',text:r.duration}]:[],buttons:btns,isTT:false};
+}
+
+// Spotify
+async function fetchSP(url){
+  const d=await api(`https://api.danzy.web.id/api/download/spotify?url=${encodeURIComponent(url)}`);
+  if(!d.status||!d.result)throw new Error('sp');
+  const r=d.result;
+  const dur=r.duration_ms?`${Math.floor(r.duration_ms/60000)}:${String(Math.floor((r.duration_ms%60000)/1000)).padStart(2,'0')}`:null;
+  return{type:'audio',thumb:r.image||'',thumbRatio:'square',isVideo:false,videoUrl:'',title:r.title||r.name||'Spotify Track',author:r.artist||'Artist',meta:[r.type?{icon:'fas fa-compact-disc',text:r.type}:null,dur?{icon:'fas fa-clock',text:dur}:null].filter(Boolean),buttons:r.download_url?[{label:'Download MP3',sub:'Audio Track',url:r.download_url,icon:'fas fa-music'}]:[],isTT:false};
+}
+
+// MediaFire
+async function fetchMF(url){
+  const d=await api(`https://api.danzy.web.id/api/download/mediafire?url=${encodeURIComponent(url)}`);
+  if(!d.status||!d.result)throw new Error('mf');
+  const r=d.result;
+  return{type:'file',thumb:null,thumbRatio:'wide',isVideo:false,videoUrl:'',title:r.filename||'MediaFire File',author:'MediaFire',meta:[r.filesize?{icon:'fas fa-weight-hanging',text:r.filesize}:null,r.filetype?{icon:'fas fa-file',text:r.filetype}:null,r.upload_date?{icon:'fas fa-calendar',text:r.upload_date}:null].filter(Boolean),buttons:r.link?[{label:'Download File',sub:r.filesize||r.filetype||'File',url:r.link,icon:'fas fa-download'}]:[],isTT:false};
+}
+
+/* ═══ RENDER RESULT ═══ */
+function renderResult(data,platform){
+  curDownloadUrls=data.buttons.map(b=>b.url).filter(Boolean);
+  curVideoUrl=data.videoUrl||'';
+
+  const grid=document.getElementById('result-grid');
+  const thumbCol=document.getElementById('thumb-col');
+  const thumbWrap=document.getElementById('thumb-wrap');
+  const vidImg=document.getElementById('vid-thumb');
+  const playBtn=document.getElementById('play-btn');
+  const ttIframe=document.getElementById('tt-iframe-wrap');
+
+  // Reset
+  thumbWrap.style.display='';ttIframe.style.display='none';ttIframe.innerHTML='';
+  playBtn.classList.add('hidden');
+
+  // Determine if we show thumbnail column at all
+  const showThumb=!!(data.thumb||data.useTTIframe);
+
+  if(!showThumb){
+    // Facebook, MediaFire — no thumb column
+    thumbCol.style.display='none';grid.classList.add('no-thumb');
+  } else {
+    thumbCol.style.display='';grid.classList.remove('no-thumb');
+
+    if(data.useTTIframe){
+      // TikTok: no thumb from API → embed iframe
+      thumbWrap.style.display='none';
+      ttIframe.style.display='block';
+      // Extract video ID from TikTok URL
+      const ttIdM=data.ttUrl.match(/\/video\/(\d+)/);
+      const ttId=ttIdM?ttIdM[1]:null;
+      if(ttId){
+        ttIframe.innerHTML=`<iframe src="https://www.tiktok.com/embed/v2/${ttId}" allowfullscreen allow="autoplay;encrypted-media" scrolling="no" frameborder="0"></iframe>`;
+      } else {
+        // Fallback: show a placeholder
+        ttIframe.style.display='none';thumbWrap.style.display='none';
+        thumbCol.style.display='none';grid.classList.add('no-thumb');
+      }
+    } else {
+      // Normal thumbnail
+      thumbWrap.style.display='';ttIframe.style.display='none';
+      thumbWrap.className='thumb-wrap';
+      if(data.thumbRatio==='square')thumbWrap.classList.add('square');
+      else if(data.thumbRatio==='wide')thumbWrap.classList.add('wide');
+
+      vidImg.src='';
+      vidImg.onerror=()=>{thumbCol.style.display='none';grid.classList.add('no-thumb')};
+      vidImg.onload=()=>{};
+      vidImg.src=data.thumb;
+
+      // Show play button only for actual video with URL
+      // Pinterest → always no play (isVideo=false), FB → no play, image → no play
+      if(data.isVideo&&curVideoUrl&&!data.isTT){
+        playBtn.classList.remove('hidden');
+        playBtn.dataset.videoUrl=curVideoUrl;
+      }
+    }
+  }
+
+  document.getElementById('vid-author').textContent=data.author||'';
+  const pc=PLAT[platform];
+  document.getElementById('result-label').innerHTML=`<i class="${pc.icon}" style="margin-right:5px"></i>${pc.name}`;
+  document.getElementById('vid-title').textContent=data.title||'Konten';
+
+  const metaEl=document.getElementById('result-meta');
+  metaEl.innerHTML='';
+  (data.meta||[]).forEach(m=>{
+    const c=document.createElement('div');c.className='result-meta-chip';
+    c.innerHTML=`<i class="${m.icon}"></i> ${m.text}`;metaEl.appendChild(c);
+  });
+
+  const btnsEl=document.getElementById('dl-btns');
+  btnsEl.innerHTML='';
+  data.buttons.forEach(btn=>{
+    const a=document.createElement('a');
+    a.className='dl-btn-primary';a.href=btn.url;a.target='_blank';a.rel='noopener noreferrer';
+    a.innerHTML=`<div class="dl-btn-icon"><i class="${btn.icon}"></i></div><div class="dl-btn-text"><div class="dl-btn-title">${btn.label}</div><div class="dl-btn-sub">${btn.sub}</div></div><i class="fas fa-external-link-alt dl-btn-arrow"></i>`;
+    btnsEl.appendChild(a);
+  });
+  if(!data.buttons.length)btnsEl.innerHTML='<p style="color:var(--text-sub);font-size:.82rem;padding:5px 0">Tidak ada link download tersedia.</p>';
+
+  const rc=document.getElementById('result-container');
+  rc.classList.add('show');
+  setTimeout(()=>rc.classList.add('visible'),50);
+}
+
+/* ═══ VIDEO MODAL ═══ */
+function playVideo(){
+  const vu=document.getElementById('play-btn').dataset.videoUrl;
+  if(!vu)return;
+  const m=document.getElementById('video-modal');
+  const c=document.getElementById('video-modal-content');
+  const v=document.createElement('video');
+  v.controls=true;v.autoplay=true;v.playsinline=true;
+  v.style.cssText='width:100%;border-radius:16px;max-height:78vh';
+  v.src=vu;c.innerHTML='';c.appendChild(v);m.classList.add('show');
+  v.onerror=()=>{c.innerHTML='';
+    const f=document.createElement('iframe');f.src=vu;
+    f.style.cssText='width:100%;height:60vh;border:none;border-radius:16px';
+    f.allow='autoplay';c.appendChild(f);
+  };
+}
+function closeVideoModal(){document.getElementById('video-modal').classList.remove('show');document.getElementById('video-modal-content').innerHTML=''}
+document.getElementById('video-modal').addEventListener('click',function(e){if(e.target===this)closeVideoModal()});
+
+/* ═══ UI HELPERS ═══ */
+function showLoading(v){document.getElementById('loading-state').classList.toggle('show',v)}
+function hideResult(){const rc=document.getElementById('result-container');rc.classList.remove('visible');setTimeout(()=>rc.classList.remove('show'),450)}
+function resetApp(){
+  document.getElementById('urlInput').value='';hideResult();curPlatform=null;
+  applyPlatformTheme(null);document.getElementById('platform-badge').classList.remove('show');
+  document.getElementById('platform-indicator').innerHTML='<i class="fas fa-link"></i>';
+  document.getElementById('urlInput').focus();window.scrollTo({top:0,behavior:'smooth'});
+}
+function copyLink(){
+  const u=curDownloadUrls[0];if(!u){showToast('Belum ada link.','error');return}
+  navigator.clipboard.writeText(u).then(()=>showToast('Link disalin!','success')).catch(()=>{
+    const e=document.createElement('input');e.value=u;document.body.appendChild(e);e.select();
+    document.execCommand('copy');document.body.removeChild(e);showToast('Link disalin!','success');
+  });
+}
+
+/* ═══ TOAST ═══ */
+let _tt=null;
+const TICONS={success:'fas fa-check-circle',error:'fas fa-exclamation-triangle',info:'fas fa-info-circle'};
+function showToast(msg,type='info'){
+  const t=document.getElementById('toast');
+  document.getElementById('toast-msg').textContent=msg;
+  document.getElementById('toast-icon').className=TICONS[type];
+  t.className='show '+type;clearTimeout(_tt);
+  _tt=setTimeout(()=>t.classList.remove('show'),3500);
+}
+
+/* ═══ INIT ═══ */
+document.addEventListener('DOMContentLoaded',()=>{
+  initSettings();
+  setupBGVideo('bg-main-video','bg-main-img');
+  checkCam();
+});
+</script>
+</body>
+</html>
